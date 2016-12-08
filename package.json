@@ -1,0 +1,33 @@
+  451 Qq1q{
+  "name": "news-scraper",
+  "version": "1.0.0",
+  "description": "A web app that gets news articles from a website, dynamically displays it on a webpage, and then allows viewers to comment on them.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johudsonRx/News-Scraper.git"
+  },
+  "keywords": [
+    "Scraper"
+  ],
+  "author": "Josh Hudson",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/johudsonRx/News-Scraper/issues"
+  },
+  "homepage": "https://github.com/johudsonRx/News-Scraper#readme",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "body-parser": "^1.15.2",
+    "cheerio": "^0.22.0",
+    "express": "^4.14.0",
+    "express-handlebars": "^3.0.0",
+    "mongojs": "^2.4.0",
+    "mongoose": "^4.7.1",
+    "morgan": "^1.7.0",
+    "request": "^2.79.0"
+  }
+}
