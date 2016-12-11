@@ -1,4 +1,13 @@
-// Dependencies
+/* Scraper: Server #1  (18.2.1)
+ * ========================= */
+
+// Dependencies:
+
+// Snatches HTML from URLs
+var request = require("request");
+// Scrapes our HTML
+var cheerio = require("cheerio");
+
 var request = require("request");
 var logger = require("morgan");
 var cheerio = require("cheerio");
@@ -6,122 +15,158 @@ var express = require("express");
 var expressHandlebars = require("express-handlebars");
 var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
-
-// Pulling from our models file
 var Article = require("./models/article.js");
+var public = require
 
-// Database configuration
-// var mongojs = require('mongojs');
-// var databaseUrl = "scraper";
-// var collections = ["scrapedData"];
-
-// Hook mongojs configuration to the db variable
-// var db = mongojs(databaseUrl, collections);
-// db.on("error", function(error) {
-//   console.log("Database Error:", error);
-// });
-
-// Mongoose mpromise deprecated - use bluebird promises
 var Promise = require("bluebird");
 mongoose.Promise = Promise;
 
-// Initialize Express
 var app = express();
 
-// Use morgan and body parser with our app
 app.use(logger("dev"));
 app.use(bodyParser.urlencoded({
   extended: false
 }));
 
-// Make public a static dir
 app.use(express.static("public"));
 
-// Database configuration with mongoose
-mongoose.connect("mongodb://localhost/filescraperdb");
-// Storing the connection in the db variable
+mongoose.connect("mongodb://localhost/filescraperdb")
+
 var db = mongoose.connection;
 
-// Show any mongoose errors
 db.on("error", function(error) {
   console.log("Mongoose Error: ", error);
 });
 
-// Once logged in to the db through mongoose, log a success message
 db.once("open", function() {
   console.log("Mongoose connection successful.");
 });
 
 
-// A GET request to scrape the techcrunch website
+
+
+
+// First, tell the console what server.js is doing
+console.log("\n***********************************\n" +
+            "Grabbing every thread name and link\n" +
+            "from reddit's webdev board:" +
+            "\n***********************************\n");
+
+app.get("/", function(req, res) {
+  res.send(index.html);
+});
+
 app.get("/scrape", function(req, res) {
-  // First, we grab the body of the html with request
-  request("https://techcrunch.com/startups/", function(error, response, html) {
-    // Then, we load that into cheerio and save it to $ for a shorthand selector
-    var $ = cheerio.load(html);
-    // Now, we grab every h2 within an article tag, and do the following:
-    $("article h2").each(function(i, element) {
+// Making a request call for reddit's "webdev" board. The page's HTML is saved as the callback's third argument
+request("https://techcrunch.com/startups/", function(error, response, html) {
 
-      // Save an empty result object
-      var result = {};
+  // Load the HTML into cheerio and save it to a variable
+  // '$' becomes a shorthand for cheerio's selector commands, much like jQuery's '$'
+  var $ = cheerio.load(html);
 
-      // Add the text and href of every link, and save them as properties of the result object
-      result.title = $(this).children("a").text();
-      result.link = $(this).children("a").attr("href");
+  // An empty array to save the data that we'll scrape
+  var result = {};
 
-      // Using our Article model, create a new entry
-      // This effectively passes the result object to the entry (and the title and link)
-      var entry = new Article(result);
+  // With cheerio, find each p-tag with the "title" class
+  // (i: iterator. element: the current element)
+  $("h2.post-title").each(function(i, element) {
 
-      // Now, save that entry to the db
-      entry.save(function(err, doc) {
-        // Log any errors
-        if (err) {
-          console.log(err);
-        }
-        // Or log the doc
-        else {
-          console.log(doc);
-        }
-      });
+    // Save the text of the element (this) in a "title" variable
+    result.title = $(this).text();
 
+    // In the currently selected element, look at its child elements (i.e., its a-tags),
+    // then save the values for any "href" attributes that the child elements may have
+    result.link = $(element).children().attr("href");
+
+    // Save these results in an object that we'll push into the result array we defined earlier
+    // result.push({
+    //   title: title,
+    //   link: link
+    // });
+
+    var entry = new Article(result);
+    console.log(entry);
+
+
+    entry.save(function(err, doc) {
+      if(err) {
+        console.log(err);
+      }
+      // Or log the doc
+      else {
+        console.log(doc);
+      }
     });
+
   });
-  // Tell the browser that we finished scraping the text
-  res.send("Scrape Complete");
+
+  // Log the result once cheerio analyzes each of its selected elements
+  console.log(result);
+ });
 });
 
 app.get("/articles", function(req, res) {
-  // Grab every doc in the Articles array
-  Article.find({}, function(error, doc) {
+
+Article.find({}, function(error, doc){
+  // Log errors if any
+  if (error) {
+    console.log(error);
+  }
+  // Or send this doc to the browser as a json object
+  else {
+    res.json(doc);
+  }
+ });
+});
+
+app.get("/articles/:id", function(req, res) {
+  // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
+  Article.findOne({ "_id": req.params.id })
+  // ..and populate all of the notes associated with it
+  .populate("note")
+  // now, execute our query
+  .exec(function(error, doc) {
     // Log any errors
     if (error) {
       console.log(error);
     }
-    // Or send the doc to the browser as a json object
+    // Otherwise, send the doc to the browser as a json object
     else {
       res.json(doc);
     }
   });
 });
 
-// app.get("/articles/:id", function(req, res) {
-//   // Using the id passed in the id parameter, prepare a query that finds the matching one in our db...
-//   Article.findOne({ "_id": req.params.id })
-//   // ..and populate all of the notes associated with it
-//   .populate("note")
-//   // now, execute our query
-//   .exec(function(error, doc) {
-//     // Log any errors
-//     if (error) {
-//       console.log(error);
-//     }
-//     // Otherwise, send the doc to the browser as a json object
-//     else {
-//       res.json(doc);
-//     }
-//   });
-// });
+// Create a new note or replace an existing note
+app.post("/articles/:id", function(req, res) {
+  // Create a new note and pass the req.body to the entry
+  var newNote = new Note(req.body);
+
+  // And save the new note the db
+  newNote.save(function(error, doc) {
+    // Log any errors
+    if (error) {
+      console.log(error);
+    }
+    // Otherwise
+    else {
+      // Use the article id to find and update it's note
+      Article.findOneAndUpdate({ "_id": req.params.id }, { "note": doc._id })
+      // Execute the above query
+      .exec(function(err, doc) {
+        // Log any errors
+        if (err) {
+          console.log(err);
+        }
+        else {
+          // Or send the document to the browser
+          res.send(doc);
+        }
+      });
+    }
+  });
+});
+
 
 
 app.listen(3000, function() {
