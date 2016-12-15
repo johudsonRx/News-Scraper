@@ -16,6 +16,7 @@ var expressHandlebars = require("express-handlebars");
 var mongoose = require("mongoose");
 var bodyParser = require("body-parser");
 var Article = require("./models/article.js");
+var Note = require("./models/note.js")
 var public = require
 
 var Promise = require("bluebird");
@@ -51,6 +52,7 @@ console.log("\n***********************************\n" +
             "Grabbing every thread name and link\n" +
             "from reddit's webdev board:" +
             "\n***********************************\n");
+
 
 app.get("/", function(req, res) {
   res.send(index.html);

@@ -6,16 +6,17 @@ var Schema = mongoose.Schema;
 // Create the Note schema
 var NoteSchema = new Schema({
   // Just a string
-  title: {
+  author: {
     type: String
   },
   // Just a string
-  body: {
+  content: {
     type: String
   }
 });
 
-// Remember, Mongoose will automatically save the ObjectIds of the notes
+
+ // Mongoose will automatically save the ObjectIds of the notes
 // These ids are referred to in the Article model
 
 // Create the Note model with the NoteSchema
